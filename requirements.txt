@@ -1,0 +1,13 @@
+# Built with Python 3.11 in mind (see README) - Kokoro's dependency chain
+# (misaki -> spacy -> thinc -> blis) doesn't yet build on very new Python
+# releases (3.14 at time of writing).
+
+torch
+easyocr
+kokoro>=0.9.4
+soundfile
+sounddevice
+numpy
+Pillow
+rapidfuzz
+PySide6
