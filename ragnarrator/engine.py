@@ -121,15 +121,20 @@ class Engine:
             return
         if focused.app_id == self._last_focused_app_id:
             return
-        self._last_focused_app_id = focused.app_id
 
         profile = Profile.load(focused.app_id)
-        if profile is not None:
-            self.set_profile(profile)
-            self._on_profile_change(focused.app_id)
-            self._on_log(f"loaded profile for {focused.app_id}")
-        else:
-            self._profile = None
-            self.pause()
-            self._on_profile_change(focused.app_id)
-            self._on_log(f"no saved profile for {focused.app_id} - select a region")
+        if profile is None:
+            # Focus moved to a window with no saved profile - this includes
+            # Ragnarrator's own control window, Steam's launcher/overlay,
+            # alt-tabbing to a browser, etc. Don't touch playback state for
+            # this; only react when a *recognized* game gets focus. Deliberately
+            # not updating _last_focused_app_id: if a genuinely new,
+            # unconfigured game gets focus, this keeps re-checking it (cheap -
+            # a JSON-file existence check) so a saved profile added while it's
+            # still focused gets picked up without needing an extra alt-tab.
+            return
+
+        self._last_focused_app_id = focused.app_id
+        self.set_profile(profile)
+        self._on_profile_change(focused.app_id)
+        self._on_log(f"loaded profile for {focused.app_id}")
