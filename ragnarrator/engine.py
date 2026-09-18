@@ -4,6 +4,7 @@ control socket both just call methods on an Engine instance.
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
 from typing import Callable
@@ -41,6 +42,12 @@ class Engine:
 
         self._profile: Profile | None = None
         self._last_focused_app_id: str | None = None
+        # The last non-Ragnarrator window niri reported as focused. Used by
+        # the "Select Region" UI action: at the moment that button is
+        # clicked, the *focused* window is always Ragnarrator itself, so the
+        # game to save the profile under has to come from here instead.
+        self._last_seen_app_id: str | None = None
+        self._own_pid = os.getpid()
         self._thread = threading.Thread(target=self._run, daemon=True)
 
     # --- control -----------------------------------------------------
@@ -86,6 +93,9 @@ class Engine:
     def set_speed(self, speed: float) -> None:
         self._tts.speed = speed
 
+    def get_last_seen_app_id(self) -> str | None:
+        return self._last_seen_app_id
+
     # --- main loop -----------------------------------------------------
     def _run(self) -> None:
         while not self._stopped.is_set():
@@ -119,15 +129,23 @@ class Engine:
             return
         if focused is None or focused.app_id is None:
             return
+        if focused.pid == self._own_pid:
+            # Ragnarrator's own control window. Ignore entirely - by
+            # definition it's focused whenever the user clicks a button in
+            # it, so it must never be treated as "the game" regardless of
+            # whether a (stale/accidental) profile happens to exist for it.
+            return
+
+        self._last_seen_app_id = focused.app_id
+
         if focused.app_id == self._last_focused_app_id:
             return
 
         profile = Profile.load(focused.app_id)
         if profile is None:
-            # Focus moved to a window with no saved profile - this includes
-            # Ragnarrator's own control window, Steam's launcher/overlay,
-            # alt-tabbing to a browser, etc. Don't touch playback state for
-            # this; only react when a *recognized* game gets focus. Deliberately
+            # Focus moved to a window with no saved profile - Steam's
+            # launcher/overlay, a browser, etc. Don't touch playback state;
+            # only react when a *recognized* game gets focus. Deliberately
             # not updating _last_focused_app_id: if a genuinely new,
             # unconfigured game gets focus, this keeps re-checking it (cheap -
             # a JSON-file existence check) so a saved profile added while it's

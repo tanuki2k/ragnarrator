@@ -1,48 +1,66 @@
 """Frame-change and text-settle detection.
 
-Screenshotting is cheap; OCR is not. This module hashes each captured frame
-and only signals "ready for OCR" once the frame has stopped changing for a
-short window. That's what prevents narrating dialogue mid-typewriter-effect,
-and what avoids running OCR on every single frame.
+Screenshotting is cheap; OCR is not. This module compares each captured
+frame to the previous one and only signals "ready for OCR" once the region
+has stopped changing for a short window. That's what prevents narrating
+dialogue mid-typewriter-effect, and what avoids running OCR on every frame.
+
+Frames are compared by mean absolute pixel difference on a downsampled
+grayscale copy, not exact equality: some games render with a per-frame
+dithering/grain effect, so two screenshots of visually-identical content can
+still differ at the byte level. An exact hash would never match in that
+case and OCR would never trigger; a small tolerance absorbs that noise while
+staying sensitive to real text changes (see git history for the measured
+noise floor this default was calibrated against).
 """
 from __future__ import annotations
 
-import hashlib
-from collections import deque
 from dataclasses import dataclass, field
 
+import numpy as np
 from PIL import Image
 
 
-def _frame_hash(image: Image.Image) -> str:
-    # Downscale + grayscale before hashing so the hash tolerates the kind of
-    # single-pixel encoding noise that can differ between two screenshots of
-    # an otherwise-unchanged frame, while staying sensitive to real text changes.
+def _downsample(image: Image.Image) -> np.ndarray:
     small = image.resize((64, 24)).convert("L")
-    return hashlib.blake2b(small.tobytes(), digest_size=16).hexdigest()
+    return np.asarray(small, dtype=np.int16)
 
 
 @dataclass
 class SettleDetector:
-    """Tracks recent frame hashes and reports when the region has stabilized."""
+    """Tracks recent frames and reports when the region has stabilized."""
 
     settle_frames: int = 3
-    _recent: deque[str] = field(init=False, repr=False)
-
-    def __post_init__(self) -> None:
-        self._recent: deque[str] = deque(maxlen=self.settle_frames)
+    diff_threshold: float = 2.0  # mean abs pixel diff (0-255 scale) treated as "unchanged"
+    _prev: np.ndarray | None = field(default=None, init=False, repr=False)
+    _stable_count: int = field(default=0, init=False, repr=False)
+    _reported: bool = field(default=False, init=False, repr=False)
 
     def observe(self, image: Image.Image) -> bool:
         """Feed a new frame. Returns True exactly once per settle event: when
-        the last `settle_frames` frames are identical and this is the first
-        observation of that stable state (not a repeat report)."""
-        was_settled = self._is_settled()
-        self._recent.append(_frame_hash(image))
-        is_settled = self._is_settled()
-        return is_settled and not was_settled
+        `settle_frames` consecutive frames have been within `diff_threshold`
+        of each other and this is the first observation of that stable run
+        (not a repeat report)."""
+        current = _downsample(image)
 
-    def _is_settled(self) -> bool:
-        return len(self._recent) == self._recent.maxlen and len(set(self._recent)) == 1
+        if self._prev is None:
+            self._stable_count = 0
+        else:
+            diff = float(np.abs(current.astype(np.int32) - self._prev.astype(np.int32)).mean())
+            if diff <= self.diff_threshold:
+                self._stable_count += 1
+            else:
+                self._stable_count = 0
+                self._reported = False
+
+        self._prev = current
+
+        if self._stable_count >= self.settle_frames and not self._reported:
+            self._reported = True
+            return True
+        return False
 
     def reset(self) -> None:
-        self._recent.clear()
+        self._prev = None
+        self._stable_count = 0
+        self._reported = False

@@ -26,6 +26,7 @@ class NiriWindow:
     app_id: str | None
     title: str | None
     is_focused: bool
+    pid: int | None
 
 
 def _run(*args: str) -> object:
@@ -54,6 +55,7 @@ def list_windows() -> list[NiriWindow]:
             app_id=w.get("app_id"),
             title=w.get("title"),
             is_focused=bool(w.get("is_focused")),
+            pid=w.get("pid"),
         )
         for w in data
     ]

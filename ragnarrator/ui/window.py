@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..capture.niri_ipc import NiriIPCError, get_focused_window
 from ..capture.region import SlurpError, select_region
 from ..profiles.profile import Profile
 
@@ -138,15 +137,15 @@ class MainWindow(QMainWindow):
 
     # --- actions -----------------------------------------------------
     def _on_select_region(self) -> None:
-        try:
-            focused = get_focused_window()
-        except NiriIPCError as exc:
-            QMessageBox.warning(self, "Ragnarrator", f"Could not query niri: {exc}")
-            return
-        if focused is None or focused.app_id is None:
+        # Not get_focused_window(): at the instant this button is clicked,
+        # the focused window is always Ragnarrator itself. The engine tracks
+        # the last *other* window niri reported as focused instead.
+        app_id = self._engine.get_last_seen_app_id()
+        if app_id is None:
             QMessageBox.warning(
                 self, "Ragnarrator",
-                "No focused window with an app-id detected. Focus the game window first.",
+                "Haven't seen a game window focused yet. Switch to your game for "
+                "a moment, then come back and try again.",
             )
             return
 
@@ -159,15 +158,15 @@ class MainWindow(QMainWindow):
             return
         self.showNormal()
 
-        profile = Profile.load(focused.app_id) or Profile(app_id=focused.app_id, region=geometry)
+        profile = Profile.load(app_id) or Profile(app_id=app_id, region=geometry)
         profile.region = geometry
         profile.voice = self._voice_combo.currentText()
         profile.speed = self._speed_spin.value()
         profile.save()
 
         self._engine.set_profile(profile)
-        self._profile_label.setText(f"Profile: {focused.app_id}")
-        self._append_log(f"saved region for {focused.app_id}: {geometry}")
+        self._profile_label.setText(f"Profile: {app_id}")
+        self._append_log(f"saved region for {app_id}: {geometry}")
 
     def _on_toggle(self) -> None:
         self._engine.toggle()
