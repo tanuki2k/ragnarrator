@@ -1,9 +1,12 @@
-# RPG Dialogue Narrator
+# Ragnarrator
 
 An accessibility tool that watches a region of the screen while you play a
 game (via Proton on Linux/niri), detects new dialogue text, and reads it
 aloud with a local, GPU-accelerated TTS voice - useful for RPGs with lots of
 unvoiced text.
+
+Named after Ragn Hemlin, the cleric protagonist of *Esoteric Ebb*, the RPG
+this was first built and tested against.
 
 Pipeline: `grim screenshot -> settle detector -> OCR -> fuzzy dedupe -> Kokoro TTS -> audio queue`
 
@@ -67,14 +70,14 @@ layout), re-run **Select Region...** for that game.
 
 Since Wayland compositors don't let regular applications register global
 hotkeys, control the running app from niri's own keybinds instead, via the
-included `narrator_ctl.py` client and a small Unix-socket IPC server the app
-exposes at `$XDG_RUNTIME_DIR/narrator.sock`:
+included `ragnarrator_ctl.py` client and a small Unix-socket IPC server the
+app exposes at `$XDG_RUNTIME_DIR/ragnarrator.sock`:
 
 ```kdl
 // ~/.config/niri/config.kdl
 binds {
-    Mod+N { spawn "/path/to/venv/bin/python" "/path/to/narrator_ctl.py" "toggle"; }
-    Mod+Shift+N { spawn "/path/to/venv/bin/python" "/path/to/narrator_ctl.py" "skip"; }
+    Mod+N { spawn "/path/to/venv/bin/python" "/path/to/ragnarrator_ctl.py" "toggle"; }
+    Mod+Shift+N { spawn "/path/to/venv/bin/python" "/path/to/ragnarrator_ctl.py" "skip"; }
 }
 ```
 
@@ -85,7 +88,7 @@ and queued audio - handy if you've advanced past what's being read).
 
 If a game's font trips up EasyOCR, or the typewriter effect is unusually
 slow/fast, edit the saved profile at
-`~/.config/narrator/profiles/<app_id>.json`:
+`~/.config/ragnarrator/profiles/<app_id>.json`:
 
 - `settle_frames` - how many consecutive identical frames (~poll_interval_s
   apart) before text is considered "done animating". Raise this if dialogue
@@ -100,7 +103,7 @@ slow/fast, edit the saved profile at
 ## Project layout
 
 ```
-narrator/
+ragnarrator/
   capture/    grim/slurp wrappers, niri IPC, settle detection
   ocr/        OCREngine interface + EasyOCR (default) and PaddleOCR (optional)
   tts/        Kokoro wrapper, audio queue/playback
@@ -108,6 +111,6 @@ narrator/
   ui/         PySide6 control window + tray icon, IPC socket server
   dedupe.py   fuzzy text-stabilization logic
   engine.py   orchestration loop tying it all together
-main.py         app entry point
-narrator_ctl.py  CLI client for the control socket (bind to niri keybinds)
+main.py             app entry point
+ragnarrator_ctl.py  CLI client for the control socket (bind to niri keybinds)
 ```

@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         self._engine = engine
         self._bridge = bridge
 
-        self.setWindowTitle("RPG Dialogue Narrator")
+        self.setWindowTitle("Ragnarrator")
         self.resize(560, 420)
 
         self._select_region_btn = QPushButton("Select Region…")
@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
     # --- tray -----------------------------------------------------
     def _make_tray(self) -> QSystemTrayIcon:
         tray = QSystemTrayIcon(_make_icon("#89B4FA"), self)
-        tray.setToolTip("RPG Dialogue Narrator")
+        tray.setToolTip("Ragnarrator")
 
         menu = QMenu()
         show_action = QAction("Show window", self)
@@ -141,11 +141,11 @@ class MainWindow(QMainWindow):
         try:
             focused = get_focused_window()
         except NiriIPCError as exc:
-            QMessageBox.warning(self, "Narrator", f"Could not query niri: {exc}")
+            QMessageBox.warning(self, "Ragnarrator", f"Could not query niri: {exc}")
             return
         if focused is None or focused.app_id is None:
             QMessageBox.warning(
-                self, "Narrator",
+                self, "Ragnarrator",
                 "No focused window with an app-id detected. Focus the game window first.",
             )
             return
@@ -155,7 +155,7 @@ class MainWindow(QMainWindow):
             geometry = select_region()
         except SlurpError as exc:
             self.showNormal()
-            QMessageBox.warning(self, "Narrator", str(exc))
+            QMessageBox.warning(self, "Ragnarrator", str(exc))
             return
         self.showNormal()
 

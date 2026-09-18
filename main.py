@@ -13,10 +13,10 @@ from typing import Callable
 
 from PySide6.QtWidgets import QApplication
 
-from narrator.engine import Engine
-from narrator.ui.bridge import Bridge
-from narrator.ui.ipc_server import IPCServer
-from narrator.ui.window import MainWindow
+from ragnarrator.engine import Engine
+from ragnarrator.ui.bridge import Bridge
+from ragnarrator.ui.ipc_server import IPCServer
+from ragnarrator.ui.window import MainWindow
 
 
 def _dispatch(engine: Engine) -> Callable[[str], None]:

@@ -1,7 +1,7 @@
 """Unix-socket control channel so external tools - e.g. a niri keybind
-running `narrator-ctl toggle` - can control a running narrator instance
-without relying on global hotkeys, which Wayland compositors don't expose to
-regular applications."""
+running `ragnarrator_ctl.py toggle` - can control a running Ragnarrator
+instance without relying on global hotkeys, which Wayland compositors don't
+expose to regular applications."""
 from __future__ import annotations
 
 import os
@@ -10,7 +10,7 @@ import threading
 from pathlib import Path
 from typing import Callable
 
-SOCKET_PATH = Path(f"/run/user/{os.getuid()}/narrator.sock")
+SOCKET_PATH = Path(f"/run/user/{os.getuid()}/ragnarrator.sock")
 
 
 class IPCServer:

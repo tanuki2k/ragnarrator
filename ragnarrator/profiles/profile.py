@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-PROFILES_DIR = Path.home() / ".config" / "narrator" / "profiles"
+PROFILES_DIR = Path.home() / ".config" / "ragnarrator" / "profiles"
 
 
 @dataclass
